@@ -1,7 +1,7 @@
 // src/pages/Step5_Connect.jsx — Enter voucher and connect
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wifi, CheckCircle2, ArrowRight, Signal, Clock, Gauge } from 'lucide-react';
+import { Wifi, CheckCircle2, ArrowRight, Signal, Clock, Gauge, Ticket } from 'lucide-react';
 import { StepShell, RedButton, GhostButton } from '../components/shared';
 
 export default function Step5Connect() {
@@ -37,12 +37,12 @@ export default function Step5Connect() {
   const handleConnect = async () => {
     if (!voucher.trim()) return;
     setStatus('connecting');
-    await new Promise((r) => setTimeout(r, 2800));
+    await new Promise((r) => setTimeout(r, 2200));
     setStatus('connected');
   };
 
   const formatVoucher = (v) => {
-    const clean = v.replace(/[-\s]/g, '').toUpperCase().slice(0, 12);
+    const clean = v.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12);
     const groups = [];
     for (let i = 0; i < clean.length; i += 4) groups.push(clean.slice(i, i + 4));
     return groups.join('-');
@@ -61,7 +61,6 @@ export default function Step5Connect() {
           <div className="relative inline-flex items-center justify-center w-28 h-28 rounded-full mb-6"
                style={{ background: 'linear-gradient(135deg, #E31E24 0%, #7c0f13 100%)', boxShadow: '0 0 60px rgba(227,30,36,0.6)' }}>
             <Wifi className="w-14 h-14 text-white" />
-            {/* Pulse rings */}
             <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: '#E31E24' }} />
           </div>
 
@@ -81,8 +80,8 @@ export default function Step5Connect() {
           {/* Stats grid */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { icon: Gauge, label: 'Speed', value: pkg?.speed || '10 Mbps', color: 'text-red-400' },
-              { icon: Clock, label: 'Duration', value: pkg?.duration || '5 hours', color: 'text-yellow-400' },
+              { icon: Gauge, label: 'Speed', value: pkg?.speed || '10-20 Mbps', color: 'text-red-400' },
+              { icon: Clock, label: 'Duration', value: pkg?.duration || 'Active Session', color: 'text-yellow-400' },
               { icon: Signal, label: 'Signal', value: '●●●●●', color: 'text-green-400' },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="glass-card rounded-xl p-3 text-center">
@@ -98,11 +97,11 @@ export default function Step5Connect() {
             <div className="text-xs text-white/40 uppercase tracking-widest mb-3 font-semibold">Session Details</div>
             <div className="space-y-2">
               {[
-                ['Package', pkg?.name || '5 Hours'],
+                ['Package', pkg?.name || 'Wi-Fi Voucher Pass'],
                 ['Voucher', voucher],
                 ['Network', 'WeAreAfro_NTN'],
                 ['IP Address', '192.168.10.' + Math.floor(Math.random() * 200 + 50)],
-                ['Expires', (() => { const d = new Date(); d.setHours(d.getHours() + 5); return d.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' }); })()],
+                ['Connected At', new Date().toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between text-xs">
                   <span className="text-white/40">{k}</span>
@@ -142,24 +141,21 @@ export default function Step5Connect() {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Guest Access Form */}
       <div className="glass-card rounded-2xl p-5 mb-4">
-        <div className="flex border-b border-white/10 mb-5">
-          <button className="flex-1 pb-3 text-sm font-medium text-white/40 hover:text-white/70 transition-colors">
-            Account Login
-          </button>
-          <button className="flex-1 pb-3 text-sm font-semibold text-white border-b-2 -mb-px"
-                  style={{ borderColor: '#E31E24' }}>
-            Guest Access
-          </button>
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/10">
+          <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+            <Ticket className="w-3.5 h-3.5 text-red-400" /> Guest Voucher Login
+          </span>
+          <span className="text-[10px] text-white/40">Instant Activation</span>
         </div>
 
-        <label className="block text-xs text-white/40 uppercase tracking-widest mb-2 font-semibold">
+        <label className="block text-xs text-white/50 uppercase tracking-widest mb-2 font-semibold">
           Voucher Code
         </label>
         <input
           type="text"
-          placeholder="XXXX-XXXX-XXXX"
+          placeholder="AFRO-XXXX-XXXX"
           className="input-field text-center text-xl tracking-widest font-mono uppercase mb-4"
           value={voucher}
           onChange={handleChange}
@@ -196,7 +192,7 @@ export default function Step5Connect() {
             Connecting{dots}
           </div>
         ) : (
-          <RedButton onClick={handleConnect} disabled={voucher.replace(/-/g, '').length < 12}>
+          <RedButton onClick={handleConnect} disabled={voucher.replace(/-/g, '').length < 8}>
             <Wifi className="w-5 h-5" />
             Connect Now
             <ArrowRight className="w-5 h-5" />

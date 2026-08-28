@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Wifi, Zap, Shield, Crown, Clock, CheckCircle2,
-  Eye, EyeOff, ChevronRight, Phone, Mail, ExternalLink,
-  Signal, Lock, Star, Ticket, ShoppingCart, Smartphone,
-  KeyRound, PartyPopper, ArrowRight,
+  ChevronRight, Phone, Mail, ExternalLink,
+  Signal, Lock, Ticket, ShoppingCart, Smartphone,
+  PartyPopper, ArrowRight, Sun, Calendar,
 } from 'lucide-react';
 import { NTNLogo, AfroLogo, CircuitOverlay } from '../components/shared';
-import { PACKAGES } from '../utils/store';
+import { fetchPackages, PACKAGES } from '../utils/store';
 
-const ICONS = { Clock, Zap, Crown };
+const ICONS = { Clock, Zap, Crown, Sun, Calendar, Wifi };
 
 // ── Features ────────────────────────────────────────────────────────────────────
 const features = [
@@ -25,7 +25,7 @@ const HOW_TO_BUY = [
     step: '01',
     icon: ShoppingCart,
     title: 'Pick a Plan',
-    desc: 'Choose your internet package and tap "Buy Now." We have hourly and full-event options.',
+    desc: 'Choose your internet package and tap "Buy Now." Options from 3 GB Daily to 100 GB Monthly.',
     color: '#E31E24',
   },
   {
@@ -53,21 +53,18 @@ const HOW_TO_BUY = [
     step: '05',
     icon: PartyPopper,
     title: 'Connect & Enjoy!',
-    desc: 'Enter your voucher on the login page, tap Connect Now, and start browsing!',
+    desc: 'Enter your voucher code, tap Connect Now, and start browsing immediately!',
     color: '#60a5fa',
   },
 ];
 
-// ══════════════════════════════════════════════════════════════════════════════════
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('account');
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ username: '', password: '', voucher: '' });
-  const [connected, setConnected] = useState(false);
+  const [voucher, setVoucher] = useState('');
   const [loading, setLoading] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeHowStep, setActiveHowStep] = useState(null);
+  const [packagesList, setPackagesList] = useState(PACKAGES);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -75,16 +72,34 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    fetchPackages().then((pkgs) => {
+      if (pkgs && pkgs.length > 0) {
+        setPackagesList(pkgs);
+      }
+    });
+  }, []);
+
+  const formatVoucher = (val) => {
+    const clean = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12);
+    const groups = [];
+    for (let i = 0; i < clean.length; i += 4) {
+      groups.push(clean.slice(i, i + 4));
+    }
+    return groups.join('-');
+  };
+
+  const handleVoucherChange = (e) => {
+    setVoucher(formatVoucher(e.target.value));
+  };
+
   const handleConnect = async (e) => {
     e.preventDefault();
+    if (!voucher.trim()) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1800));
+    await new Promise((r) => setTimeout(r, 1000));
     setLoading(false);
-    if (activeTab === 'guest') {
-      navigate('/connect', { state: { voucher: formData.voucher } });
-    } else {
-      setConnected(true);
-    }
+    navigate('/connect', { state: { voucher } });
   };
 
   return (
@@ -148,106 +163,85 @@ export default function LandingPage() {
           </button>
           <button onClick={() => document.getElementById('login-card')?.scrollIntoView({ behavior: 'smooth' })}
                   className="btn-ghost px-8 py-3.5 text-base flex items-center gap-2">
-            <Wifi className="w-5 h-5" /> I Have a Voucher
+            <Ticket className="w-5 h-5" /> Enter Voucher
           </button>
         </div>
 
-        {/* ── LOGIN CARD ────────────────────────────────────────────────────── */}
+        {/* ── GUEST ACCESS VOUCHER CARD ────────────────────────────────────── */}
         <div id="login-card" className="relative z-10 w-full max-w-md">
           <div className="glass-card rounded-3xl p-6 sm:p-8 glow-pulse">
-            <div className="flex items-center gap-1.5 mb-6">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <div className="w-3 h-3 rounded-full bg-yellow-400" />
-              <div className="w-3 h-3 rounded-full bg-green-400" />
-              <div className="ml-auto flex items-center gap-1.5 text-white/40 text-xs">
-                <Lock className="w-3 h-3" /><span>Secure</span>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                <div className="w-3 h-3 rounded-full bg-green-400" />
+              </div>
+              <div className="inline-flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full text-white/90"
+                   style={{ background: 'rgba(227,30,36,0.18)', border: '1px solid rgba(227,30,36,0.35)' }}>
+                <Ticket className="w-3.5 h-3.5 text-red-400" />
+                Guest Access
               </div>
             </div>
 
-            {connected ? (
-              <div className="text-center py-6">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-                     style={{ background: 'linear-gradient(135deg, #E31E24, #7c0f13)', boxShadow: '0 0 40px rgba(227,30,36,0.6)' }}>
-                  <CheckCircle2 className="w-10 h-10 text-white" />
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-white mb-1">Wi-Fi Voucher Login</h2>
+              <p className="text-xs text-white/50">Enter the voucher code sent to your phone after purchase</p>
+            </div>
+
+            <form onSubmit={handleConnect} className="space-y-4">
+              <div>
+                <label className="block text-xs text-white/60 mb-2 font-semibold tracking-wider uppercase">
+                  Voucher / Promo Code
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="AFRO-XXXX-XXXX"
+                    className="input-field text-center text-lg sm:text-xl tracking-widest font-mono uppercase font-bold"
+                    value={voucher}
+                    onChange={handleVoucherChange}
+                    maxLength={14}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
+                  />
                 </div>
-                <h2 className="text-2xl font-bold mb-2">You're Connected!</h2>
-                <p className="text-white/60 text-sm mb-6">Enjoy the vibes. Network: <strong className="text-red-400">WeAreAfro_NTN</strong></p>
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  {[['Speed', '10 Mbps'], ['Signal', '●●●●○'], ['Expires', '5h 00m']].map(([k, v]) => (
-                    <div key={k} className="glass-card-dark rounded-xl p-3 text-center">
-                      <div className="text-xs text-white/40 mb-1">{k}</div>
-                      <div className="text-sm font-semibold text-white">{v}</div>
-                    </div>
-                  ))}
+                <div className="flex justify-between items-center text-[11px] text-white/35 mt-2 px-1">
+                  <span>Format: 12 alphanumeric characters</span>
+                  <span>Instant access</span>
                 </div>
-                <button onClick={() => setConnected(false)} className="btn-ghost w-full text-sm">Switch Account</button>
               </div>
-            ) : (
-              <>
-                <div className="flex border-b border-white/10 mb-6">
-                  {[['account', 'Account Login'], ['guest', 'Guest Access']].map(([id, label]) => (
-                    <button key={id} onClick={() => setActiveTab(id)}
-                            className={`flex-1 pb-3 text-sm font-medium transition-all duration-200 ${activeTab === id ? 'text-white border-b-2 -mb-px' : 'text-white/40 hover:text-white/70'}`}
-                            style={activeTab === id ? { borderColor: '#E31E24' } : {}}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
 
-                <form onSubmit={handleConnect} className="space-y-4">
-                  {activeTab === 'account' ? (
-                    <>
-                      <div>
-                        <label className="block text-xs text-white/50 mb-1.5 font-medium tracking-wide uppercase">Username</label>
-                        <input type="text" placeholder="Enter your username" className="input-field"
-                               value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/50 mb-1.5 font-medium tracking-wide uppercase">Password</label>
-                        <div className="relative">
-                          <input type={showPassword ? 'text' : 'password'} placeholder="Enter your password"
-                                 className="input-field pr-12" value={formData.password}
-                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
-                          <button type="button" onClick={() => setShowPassword(!showPassword)}
-                                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors">
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div>
-                      <label className="block text-xs text-white/50 mb-1.5 font-medium tracking-wide uppercase">
-                        <Ticket className="inline w-3.5 h-3.5 mr-1 -mt-0.5" />Voucher / Promo Code
-                      </label>
-                      <input type="text" placeholder="XXXX-XXXX-XXXX"
-                             className="input-field text-center tracking-widest font-mono uppercase"
-                             value={formData.voucher} onChange={(e) => setFormData({ ...formData, voucher: e.target.value.toUpperCase() })} />
-                    </div>
-                  )}
+              <button
+                type="submit"
+                className="btn-red w-full text-base mt-2 h-12 flex items-center justify-center gap-2"
+                disabled={loading || voucher.replace(/-/g, '').length < 8}
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    Verifying Voucher…
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <Wifi className="w-4 h-4" /> Connect Now
+                  </span>
+                )}
+              </button>
+            </form>
 
-                  <button type="submit" className="btn-red w-full text-base mt-2 h-12" disabled={loading}>
-                    {loading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                        </svg>Connecting…
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center gap-2">
-                        <Wifi className="w-4 h-4" />Connect Now
-                      </span>
-                    )}
-                  </button>
-                </form>
-
-                <div className="flex justify-center gap-6 mt-4">
-                  <button className="text-xs text-white/40 hover:text-red-400 underline underline-offset-2 transition-colors">Forgot Password?</button>
-                  <button onClick={() => navigate('/buy')} className="text-xs text-white/40 hover:text-red-400 underline underline-offset-2 transition-colors">Buy Data →</button>
-                </div>
-              </>
-            )}
+            <div className="mt-6 pt-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-white/40">Need Wi-Fi data?</span>
+              <button
+                onClick={() => navigate('/buy')}
+                className="text-xs text-red-400 hover:text-red-300 font-semibold inline-flex items-center gap-1 transition-colors"
+              >
+                Buy a Data Package <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -275,9 +269,8 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Steps — vertical timeline on mobile, horizontal on lg */}
+          {/* Steps */}
           <div className="relative">
-            {/* Connecting line (desktop) */}
             <div className="hidden lg:block absolute top-14 left-[10%] right-[10%] h-px"
                  style={{ background: 'linear-gradient(90deg, transparent, rgba(227,30,36,0.3), rgba(227,30,36,0.6), rgba(227,30,36,0.3), transparent)' }} />
 
@@ -302,15 +295,12 @@ export default function LandingPage() {
                            border: `1px solid ${isActive ? item.color + '60' : 'rgba(255,255,255,0.08)'}`,
                            boxShadow: isActive ? `0 20px 40px ${item.color}30` : 'none',
                          }}>
-                      {/* Big number bg */}
                       <div className="absolute top-2 right-3 text-5xl font-black opacity-[0.08] leading-none select-none"
                            style={{ color: item.color }}>{item.step}</div>
-                      {/* Icon */}
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-1 transition-all duration-300"
                            style={{ background: `${item.color}20`, border: `1px solid ${item.color}40` }}>
                         <Icon className="w-6 h-6 transition-all duration-300" style={{ color: item.color }} />
                       </div>
-                      {/* Step label */}
                       <span className="text-[10px] font-black tracking-wider text-white/30">STEP {item.step}</span>
                     </div>
 
@@ -366,46 +356,48 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-black mb-3">
               Choose Your <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(90deg, #E31E24, #ff6b6b)' }}>Connection</span>
             </h2>
-            <p className="text-white/50 text-sm max-w-md mx-auto">Instant activation. Pay via M-Pesa, card, or at the help desk.</p>
+            <p className="text-white/50 text-sm max-w-md mx-auto">Instant activation. Pay securely via M-Pesa.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {PACKAGES.map((pkg) => {
-              const Icon = ICONS[pkg.icon];
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {packagesList.map((pkg) => {
+              const Icon = ICONS[pkg.icon] || Wifi;
               return (
                 <div key={pkg.id}
-                     className={`pricing-card glass-card rounded-3xl p-6 relative ${pkg.highlight ? 'ring-1 ring-red-600/60' : ''}`}
+                     className={`pricing-card glass-card rounded-3xl p-6 relative flex flex-col justify-between ${pkg.highlight ? 'ring-1 ring-red-600/60' : ''}`}
                      style={pkg.highlight ? { boxShadow: '0 0 40px rgba(227,30,36,0.2)' } : {}}>
-                  {pkg.badge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full text-white"
-                            style={{ background: '#E31E24', boxShadow: '0 0 16px rgba(227,30,36,0.6)' }}>{pkg.badge}</span>
+                  <div>
+                    {pkg.badge && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="text-[10px] font-black tracking-widest uppercase px-3 py-1 rounded-full text-white"
+                              style={{ background: '#E31E24', boxShadow: '0 0 16px rgba(227,30,36,0.6)' }}>{pkg.badge}</span>
+                      </div>
+                    )}
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+                         style={{ background: 'rgba(227,30,36,0.15)', border: '1px solid rgba(227,30,36,0.3)' }}>
+                      <Icon className="w-6 h-6 text-red-400" />
                     </div>
-                  )}
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-                       style={{ background: 'rgba(227,30,36,0.15)', border: '1px solid rgba(227,30,36,0.3)' }}>
-                    <Icon className="w-6 h-6 text-red-400" />
+                    <h3 className="text-xl font-bold mb-1">{pkg.name}</h3>
+                    <div className="text-3xl font-black text-white mb-1">{pkg.price}</div>
+                    <div className="text-xs text-white/30 mb-4">{pkg.duration}</div>
+                    <div className="flex gap-3 mb-5">
+                      <div className="glass-card-dark rounded-xl px-3 py-2 text-center flex-1">
+                        <div className="text-xs text-white/40">Speed</div>
+                        <div className="text-sm font-bold text-red-400">{pkg.speed || 'High-Speed'}</div>
+                      </div>
+                      <div className="glass-card-dark rounded-xl px-3 py-2 text-center flex-1">
+                        <div className="text-xs text-white/40">Devices</div>
+                        <div className="text-sm font-bold text-white">{pkg.devices || '1-2 Devices'}</div>
+                      </div>
+                    </div>
+                    <ul className="space-y-2 mb-6">
+                      {(pkg.features || ['High-Speed Browsing', 'Social Media & Streaming', 'Instant SMS Voucher']).map((f) => (
+                        <li key={f} className="flex items-center gap-2 text-sm text-white/70">
+                          <CheckCircle2 className="w-4 h-4 text-red-500 flex-shrink-0" />{f}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <h3 className="text-xl font-bold mb-1">{pkg.name}</h3>
-                  <div className="text-3xl font-black text-white mb-1">{pkg.price}</div>
-                  <div className="text-xs text-white/30 mb-4">{pkg.usd}</div>
-                  <div className="flex gap-3 mb-5">
-                    <div className="glass-card-dark rounded-xl px-3 py-2 text-center flex-1">
-                      <div className="text-xs text-white/40">Speed</div>
-                      <div className="text-sm font-bold text-red-400">{pkg.speed}</div>
-                    </div>
-                    <div className="glass-card-dark rounded-xl px-3 py-2 text-center flex-1">
-                      <div className="text-xs text-white/40">Devices</div>
-                      <div className="text-sm font-bold text-white">{pkg.devices}</div>
-                    </div>
-                  </div>
-                  <ul className="space-y-2 mb-6">
-                    {pkg.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm text-white/70">
-                        <CheckCircle2 className="w-4 h-4 text-red-500 flex-shrink-0" />{f}
-                      </li>
-                    ))}
-                  </ul>
                   <button onClick={() => navigate('/buy', { state: { preselect: pkg.id } })}
                           className={`w-full h-11 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-300 ${pkg.highlight ? 'btn-red' : 'btn-ghost'}`}>
                     Buy Now <ChevronRight className="w-4 h-4" />
@@ -415,7 +407,7 @@ export default function LandingPage() {
             })}
           </div>
           <div className="mt-8 text-center">
-            <p className="text-white/30 text-xs">Pay via <span className="text-green-400 font-semibold">M-Pesa</span> · Visa/Mastercard · Airtel Money · Cash at help desk</p>
+            <p className="text-white/30 text-xs">Pay securely with <span className="text-green-400 font-semibold">M-Pesa STK Push</span> · Instant SMS voucher</p>
           </div>
         </div>
       </section>
@@ -473,7 +465,7 @@ export default function LandingPage() {
             <div>
               <h4 className="text-xs font-bold uppercase tracking-widest text-white/50 mb-3">Support</h4>
               <ul className="space-y-2">
-                {[[Phone, '+254 700 000 000', 'tel:+254700000000'], [Mail, 'support@nextthingnetworks.co.ke', 'mailto:s@n.co']].map(([Icon, label, href]) => (
+                {[[Phone, '+254 700 000 000', 'tel:+254700000000'], [Mail, 'support@nextthingnetworks.co.ke', 'mailto:support@nextthingnetworks.co.ke']].map(([Icon, label, href]) => (
                   <li key={label}>
                     <a href={href} className="flex items-center gap-2 text-xs text-white/40 hover:text-red-400 transition-colors">
                       <Icon className="w-3.5 h-3.5 flex-shrink-0" />{label}
