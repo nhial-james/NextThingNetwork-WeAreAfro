@@ -1,8 +1,9 @@
 // src/utils/store.js
 // API base and shared utilities
 
-const BASE_URL = 'https://hotspot.nextthingnetworks.co.ke';
-const STATION  = 'daystar';
+export const BASE_URL = 'https://hotspot.nextthingnetworks.co.ke';
+export const HOTSPOT_LOGIN_URL = 'http://ntnafro.net/login';
+const STATION = 'daystar';
 
 // Fallback packages in case of network issue or offline mode
 export const PACKAGES = [
@@ -17,7 +18,8 @@ export const PACKAGES = [
     usd: '~$0.23',
     speed: '10 Mbps',
     devices: '1 Device',
-    duration: '24 hours',
+    duration: '1 days',
+    dataAmount: '3GB',
     features: ['High-Speed Browsing', 'Social Media & Live Streaming', 'Instant Activation'],
     highlight: true,
     badge: 'MOST POPULAR',
@@ -33,7 +35,8 @@ export const PACKAGES = [
     usd: '~$0.46',
     speed: '15 Mbps',
     devices: '2 Devices',
-    duration: '24 hours',
+    duration: '1 days',
+    dataAmount: '12GB',
     features: ['Ultra-HD Streaming', 'Multiple Devices', 'Priority Bandwidth'],
     highlight: false,
     badge: null,
@@ -50,6 +53,7 @@ export const PACKAGES = [
     speed: '20 Mbps',
     devices: '2 Devices',
     duration: '7 days',
+    dataAmount: '15GB',
     features: ['7 Days Full Access', 'HD Video Calls', 'VIP Queue'],
     highlight: false,
     badge: 'BEST VALUE',
@@ -66,6 +70,7 @@ export const PACKAGES = [
     speed: '25 Mbps',
     devices: '3 Devices',
     duration: '7 days',
+    dataAmount: '20GB',
     features: ['20 GB High Speed', 'Uncapped Speed', 'VIP Priority'],
     highlight: false,
     badge: null,
@@ -82,7 +87,8 @@ export const PACKAGES = [
     speed: '50 Mbps',
     devices: '5 Devices',
     duration: '30 days',
-    features: ['100 GB High Speed', 'Ultra-Low Latency', 'Unlimited Devices', 'VIP VIP Priority'],
+    dataAmount: '100GB',
+    features: ['100 GB High Speed', 'Ultra-Low Latency', 'Unlimited Devices', 'VIP Priority'],
     highlight: false,
     badge: 'PRO VIP',
   },
@@ -100,22 +106,26 @@ export async function fetchPackages() {
       let icon = 'Wifi';
       let badge = null;
       let highlight = false;
-      let duration = pkg.name;
+      let duration = '1 days';
+      let dataAmount = '3GB';
       let speed = '10 Mbps';
       let devices = '1-2 Devices';
 
       if (nameLower.includes('daily')) {
         icon = 'Sun';
-        duration = '24 hours';
+        duration = '1 days';
+        dataAmount = nameLower.includes('12') ? '12GB' : '3GB';
         speed = '10-15 Mbps';
       } else if (nameLower.includes('weekly') || nameLower.includes('week')) {
         icon = 'Calendar';
         duration = '7 days';
+        dataAmount = nameLower.includes('20') ? '20GB' : '15GB';
         speed = '20-25 Mbps';
         badge = index === 2 ? 'BEST VALUE' : null;
       } else if (nameLower.includes('monthly') || nameLower.includes('month')) {
         icon = 'Crown';
         duration = '30 days';
+        dataAmount = '100GB';
         speed = '50 Mbps';
         devices = 'Up to 5 Devices';
         badge = 'PRO VIP';
@@ -135,12 +145,13 @@ export async function fetchPackages() {
         price: `KSh ${parseFloat(pkg.price).toFixed(0)}`,
         priceNum: parseFloat(pkg.price),
         duration,
+        dataAmount,
         speed,
         devices,
         features: [
           'High-Speed Browsing',
           'Social Media & Streaming',
-          'Instant Voucher SMS',
+          'Instant SMS Voucher',
         ],
         highlight,
         badge,
@@ -175,6 +186,7 @@ export async function sendStkPush({ phone, packageId, amount }) {
     data?.checkout_request_id ??
     data?.checkoutRequestId ??
     data?.request_id ??
+    data?.id ??
     null;
 
   if (!checkoutRequestId) {
@@ -186,52 +198,159 @@ export async function sendStkPush({ phone, packageId, amount }) {
 
 // ── Poll payment status ────────────────────────────────────────────────────────
 export async function checkPaymentStatus(checkoutRequestId) {
-  const res = await fetch(
-    `${BASE_URL}/public/mpesa/payment-status/${checkoutRequestId}`
-  );
+  try {
+    const res = await fetch(
+      `${BASE_URL}/public/mpesa/payment-status/${checkoutRequestId}`
+    );
 
-  const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      // 404 or temporary backend delay -> treat as pending, keep polling
+      return { status: 'pending' };
+    }
 
-  if (!res.ok) {
-    if (res.status === 404) return { status: 'pending' };
-    throw new Error(data?.message || `Status check failed (${res.status})`);
+    const data = await res.json().catch(() => ({}));
+
+    // Extract any voucher code directly from response
+    let voucher =
+      data?.voucher ??
+      data?.voucher_code ??
+      data?.code ??
+      data?.voucherCode ??
+      data?.data?.voucher ??
+      data?.data?.code ??
+      data?.data?.voucher_code ??
+      null;
+
+    const message = (
+      data?.message ??
+      data?.ResultDesc ??
+      data?.sms ??
+      data?.description ??
+      ''
+    ).toString();
+
+    // If voucher not in explicit field, extract from SMS message
+    // e.g. "Dear user, your voucher code is HVLA1Z7 for 3GB. Valid for 1 days."
+    if (!voucher && message) {
+      const match =
+        message.match(/voucher(?:\s+code)?(?:\s+is)?[:\s]+([A-Za-z0-9]{5,15})/i) ||
+        message.match(/code\s+is\s+([A-Za-z0-9]{5,15})/i) ||
+        message.match(/\b([A-Z0-9]{7})\b/);
+      if (match && match[1]) {
+        voucher = match[1].trim().toUpperCase();
+      }
+    }
+
+    const rawStatus = (
+      data?.status ??
+      data?.Status ??
+      data?.result ??
+      data?.state ??
+      ''
+    ).toString().toLowerCase();
+
+    const resultCode = data?.ResultCode ?? data?.result_code ?? data?.resultCode;
+
+    // Any positive signal indicates success
+    const isSuccess =
+      Boolean(voucher) ||
+      rawStatus === 'success' ||
+      rawStatus === 'successful' ||
+      rawStatus === 'completed' ||
+      rawStatus === 'complete' ||
+      rawStatus === 'paid' ||
+      rawStatus === 'ok' ||
+      rawStatus === '0' ||
+      data?.success === true ||
+      data?.paid === true ||
+      resultCode === 0 ||
+      resultCode === '0';
+
+    if (isSuccess) {
+      const finalVoucher = voucher || generateVoucher();
+      return {
+        status: 'success',
+        voucher: finalVoucher,
+        message: message || `Dear user, your voucher code is ${finalVoucher}.`,
+        raw: data,
+      };
+    }
+
+    const isFailed =
+      rawStatus === 'failed' ||
+      rawStatus === 'failure' ||
+      rawStatus === 'cancelled' ||
+      rawStatus === 'canceled' ||
+      rawStatus === 'declined' ||
+      rawStatus === 'rejected' ||
+      (resultCode !== undefined && resultCode !== null && resultCode !== 0 && resultCode !== '0');
+
+    if (isFailed) {
+      return {
+        status: 'failed',
+        message: message || data?.error || 'Payment was declined or cancelled.',
+      };
+    }
+
+    return { status: 'pending' };
+  } catch (err) {
+    console.warn('Status poll warning:', err.message);
+    return { status: 'pending' };
   }
-
-  const raw = (
-    data?.status ??
-    data?.Status ??
-    data?.ResultCode ??
-    data?.result_code ??
-    ''
-  ).toString().toLowerCase();
-
-  if (raw === 'success' || raw === '0' || data?.success === true || data?.paid === true) {
-    return { status: 'success' };
-  }
-
-  if (
-    raw === 'failed' ||
-    raw === 'failure' ||
-    raw === 'cancelled' ||
-    raw === 'canceled' ||
-    (data?.ResultCode !== undefined && data.ResultCode !== 0)
-  ) {
-    return {
-      status: 'failed',
-      message: data?.ResultDesc || data?.message || data?.error || 'Payment was declined or cancelled.',
-    };
-  }
-
-  return { status: 'pending' };
 }
 
-// ── Voucher generator ─────────────────────────────────────────────────────────
+// ── Submit voucher to MikroTik / Hotspot Login ─────────────────────────────────
+// Submits username & password to http://ntnafro.net/login
+export function submitHotspotLogin(voucherCode) {
+  if (!voucherCode) return;
+  const clean = voucherCode.trim();
+
+  // Create an invisible form to perform standard captive portal login
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = HOTSPOT_LOGIN_URL;
+  form.style.display = 'none';
+
+  const userField = document.createElement('input');
+  userField.type = 'hidden';
+  userField.name = 'username';
+  userField.value = clean;
+  form.appendChild(userField);
+
+  const passField = document.createElement('input');
+  passField.type = 'hidden';
+  passField.name = 'password';
+  passField.value = clean;
+  form.appendChild(passField);
+
+  const dstField = document.createElement('input');
+  dstField.type = 'hidden';
+  dstField.name = 'dst';
+  dstField.value = 'http://ntnafro.net/status';
+  form.appendChild(dstField);
+
+  document.body.appendChild(form);
+  
+  try {
+    form.submit();
+  } catch (e) {
+    console.warn('Form submit error:', e);
+    // Fallback GET request if POST blocked
+    window.location.href = `${HOTSPOT_LOGIN_URL}?username=${encodeURIComponent(clean)}&password=${encodeURIComponent(clean)}`;
+  }
+}
+
+// ── Voucher generator (7-char uppercase alphanumeric like HVLA1Z7) ────────────
 export function generateVoucher() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   let code = '';
-  for (let i = 0; i < 12; i++) {
-    if (i > 0 && i % 4 === 0) code += '-';
+  for (let i = 0; i < 7; i++) {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
-  return code;
+  return code; // e.g. HVLA1Z7
+}
+
+// ── Format standard SMS voucher message ────────────────────────────────────────
+export function getVoucherSmsMessage({ voucher, dataAmount = '3GB', duration = '1 days' }) {
+  return `Dear user, your voucher code is ${voucher} for ${dataAmount}. Valid for ${duration}.`;
 }

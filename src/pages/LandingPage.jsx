@@ -7,7 +7,7 @@ import {
   PartyPopper, ArrowRight, Sun, Calendar,
 } from 'lucide-react';
 import { NTNLogo, AfroLogo, CircuitOverlay } from '../components/shared';
-import { fetchPackages, PACKAGES } from '../utils/store';
+import { fetchPackages, PACKAGES, submitHotspotLogin } from '../utils/store';
 
 const ICONS = { Clock, Zap, Crown, Sun, Calendar, Wifi };
 
@@ -97,6 +97,7 @@ export default function LandingPage() {
     e.preventDefault();
     if (!voucher.trim()) return;
     setLoading(true);
+    submitHotspotLogin(voucher);
     await new Promise((r) => setTimeout(r, 1000));
     setLoading(false);
     navigate('/connect', { state: { voucher } });
