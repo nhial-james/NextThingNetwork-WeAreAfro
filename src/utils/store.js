@@ -1,50 +1,82 @@
 // src/utils/store.js
-// Shared purchase context passed via router state
-export const PACKAGES = [
-  {
-    id: 'hour',
-    icon: 'Clock',
-    name: '1 Hour',
-    price: 'KSh 50',
-    priceNum: 50,
-    usd: '~$0.38',
-    speed: '5 Mbps',
-    devices: '1 Device',
-    duration: '60 mins',
-    features: ['HD Streaming', 'Social Media', 'Messaging'],
-    highlight: false,
-    badge: null,
-  },
-  {
-    id: 'five',
-    icon: 'Zap',
-    name: '5 Hours',
-    price: 'KSh 200',
-    priceNum: 200,
-    usd: '~$1.55',
-    speed: '10 Mbps',
-    devices: '2 Devices',
-    duration: '5 hours',
-    features: ['HD Streaming', 'Social Media', 'Video Calls', 'Priority Queue'],
-    highlight: true,
-    badge: 'MOST POPULAR',
-  },
-  {
-    id: 'event',
-    icon: 'Crown',
-    name: 'Full Event',
-    price: 'KSh 500',
-    priceNum: 500,
-    usd: '~$3.85',
-    speed: '20 Mbps',
-    devices: '3 Devices',
-    duration: 'All night',
-    features: ['4K Streaming', 'All Platforms', 'Video Calls', 'VIP Priority', 'No Throttle'],
-    highlight: false,
-    badge: 'VIP',
-  },
-];
+// API base and shared utilities
 
+const BASE_URL = 'https://hotspot.nextthingnetworks.co.ke';
+const STATION  = 'daystar';
+
+// ── Fetch packages from live API ───────────────────────────────────────────────
+export async function fetchPackages() {
+  const res = await fetch(`${BASE_URL}/api/packages/${STATION}`);
+  if (!res.ok) throw new Error(`Failed to fetch packages (${res.status})`);
+  const data = await res.json();
+
+  // Normalise the API response into the shape the UI expects
+  return data.map((pkg, index) => {
+    // Derive a display-friendly duration / label from the name
+    const nameLower = pkg.name.toLowerCase();
+    let icon    = 'Wifi';
+    let badge   = null;
+    let highlight = false;
+    let duration = pkg.name;
+
+    if (nameLower.includes('daily')) {
+      icon      = 'Sun';
+      duration  = '24 hours';
+    } else if (nameLower.includes('weekly') || nameLower.includes('week')) {
+      icon      = 'Calendar';
+      duration  = '7 days';
+    } else if (nameLower.includes('monthly') || nameLower.includes('month')) {
+      icon      = 'Crown';
+      duration  = '30 days';
+      badge     = 'BEST VALUE';
+    }
+
+    // Mark the cheapest package as "most popular"
+    if (index === 0) {
+      badge     = 'MOST POPULAR';
+      highlight = true;
+    }
+
+    return {
+      // Use the real API id so it can be sent to STK push
+      id:         pkg.id,
+      api_id:     String(pkg.id),
+      icon,
+      name:       pkg.name,
+      description: pkg.description,
+      // Price from API is a string like "30.00" — display as KSh
+      price:      `KSh ${parseFloat(pkg.price).toFixed(0)}`,
+      priceNum:   parseFloat(pkg.price),
+      duration,
+      highlight,
+      badge,
+    };
+  });
+}
+
+// ── Send real STK Push to M-Pesa ───────────────────────────────────────────────
+// Returns { success: true } or throws with an error message
+export async function sendStkPush({ phone, packageId, amount }) {
+  const res = await fetch(`${BASE_URL}/payment/stkpush`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      phone,        // e.g. "254712345678"
+      package_id: String(packageId),
+      amount,       // numeric e.g. 30
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data?.message || `STK push failed (${res.status})`);
+  }
+
+  return data; // whatever the server returns (checkout_request_id etc.)
+}
+
+// ── Voucher generator (kept for voucher display page) ─────────────────────────
 export function generateVoucher() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';

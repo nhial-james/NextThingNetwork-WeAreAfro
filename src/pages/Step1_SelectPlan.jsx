@@ -1,18 +1,87 @@
-// src/pages/Step1_SelectPlan.jsx — Pick a plan
+// src/pages/Step1_SelectPlan.jsx — Pick a plan (live API)
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Zap, Crown, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Wifi, Sun, Calendar, Crown, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { StepShell, RedButton } from '../components/shared';
-import { PACKAGES } from '../utils/store';
+import { fetchPackages } from '../utils/store';
 
-const ICONS = { Clock, Zap, Crown };
+const ICONS = { Wifi, Sun, Calendar, Crown };
 
 export default function Step1SelectPlan() {
   const navigate = useNavigate();
+  const [packages, setPackages]   = useState([]);
+  const [loading,  setLoading]    = useState(true);
+  const [error,    setError]      = useState(null);
+
+  const loadPackages = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const pkgs = await fetchPackages();
+      setPackages(pkgs);
+    } catch (err) {
+      setError(err.message || 'Failed to load packages. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadPackages(); }, []);
 
   const handleSelect = (pkg) => {
     navigate('/buy/phone', { state: { package: pkg } });
   };
 
+  // ── Loading state ────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <StepShell step={1} title="Pick a Plan" subtitle="Fetching available packages…">
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="glass-card rounded-2xl p-5 animate-pulse">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-white/10" />
+                  <div className="space-y-2">
+                    <div className="h-4 w-28 rounded bg-white/10" />
+                    <div className="h-3 w-20 rounded bg-white/5" />
+                  </div>
+                </div>
+                <div className="h-6 w-16 rounded bg-white/10" />
+              </div>
+              <div className="mt-4 flex gap-2">
+                <div className="h-6 w-20 rounded-full bg-white/10" />
+                <div className="h-6 w-24 rounded-full bg-white/5" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </StepShell>
+    );
+  }
+
+  // ── Error state ──────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <StepShell step={1} title="Pick a Plan" subtitle="Choose your internet package">
+        <div className="flex flex-col items-center justify-center py-10 text-center gap-4">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center"
+               style={{ background: 'rgba(227,30,36,0.15)', border: '1px solid rgba(227,30,36,0.3)' }}>
+            <AlertCircle className="w-7 h-7 text-red-400" />
+          </div>
+          <div>
+            <p className="text-white font-semibold mb-1">Could not load packages</p>
+            <p className="text-sm text-white/40">{error}</p>
+          </div>
+          <RedButton onClick={loadPackages} className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" /> Try Again
+          </RedButton>
+        </div>
+      </StepShell>
+    );
+  }
+
+  // ── Packages loaded ──────────────────────────────────────────────────────────
   return (
     <StepShell
       step={1}
@@ -20,8 +89,8 @@ export default function Step1SelectPlan() {
       subtitle="Choose the internet package that fits your vibe"
     >
       <div className="space-y-4">
-        {PACKAGES.map((pkg) => {
-          const Icon = ICONS[pkg.icon];
+        {packages.map((pkg) => {
+          const Icon = ICONS[pkg.icon] || Wifi;
           return (
             <button
               key={pkg.id}
@@ -51,7 +120,7 @@ export default function Step1SelectPlan() {
                     </div>
                     <div>
                       <div className="font-bold text-white text-base">{pkg.name}</div>
-                      <div className="text-xs text-white/40">{pkg.duration} · {pkg.devices}</div>
+                      <div className="text-xs text-white/40">{pkg.duration}</div>
                     </div>
                   </div>
 
@@ -59,24 +128,9 @@ export default function Step1SelectPlan() {
                   <div className="flex items-center gap-3">
                     <div className="text-right">
                       <div className="text-xl font-black text-white">{pkg.price}</div>
-                      <div className="text-[10px] text-white/30">{pkg.usd}</div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-red-400 transition-colors" />
                   </div>
-                </div>
-
-                {/* Speed + features inline */}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="text-xs px-2.5 py-1 rounded-full font-semibold text-red-400"
-                        style={{ background: 'rgba(227,30,36,0.12)', border: '1px solid rgba(227,30,36,0.2)' }}>
-                    ⚡ {pkg.speed}
-                  </span>
-                  {pkg.features.slice(0, 3).map((f) => (
-                    <span key={f} className="text-xs px-2.5 py-1 rounded-full text-white/50"
-                          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      {f}
-                    </span>
-                  ))}
                 </div>
               </div>
             </button>
@@ -87,7 +141,7 @@ export default function Step1SelectPlan() {
       {/* Trust signals */}
       <div className="mt-6 flex items-center justify-center gap-6 text-xs text-white/25">
         <span>✓ Instant activation</span>
-        <span>✓ Secure payment</span>
+        <span>✓ Secure M-Pesa payment</span>
         <span>✓ No contract</span>
       </div>
     </StepShell>
