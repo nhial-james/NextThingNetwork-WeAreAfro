@@ -10,9 +10,7 @@ export async function fetchPackages() {
   if (!res.ok) throw new Error(`Failed to fetch packages (${res.status})`);
   const data = await res.json();
 
-  // Normalise the API response into the shape the UI expects
   return data.map((pkg, index) => {
-    // Derive a display-friendly duration / label from the name
     const nameLower = pkg.name.toLowerCase();
     let icon    = 'Wifi';
     let badge   = null;
@@ -20,33 +18,30 @@ export async function fetchPackages() {
     let duration = pkg.name;
 
     if (nameLower.includes('daily')) {
-      icon      = 'Sun';
-      duration  = '24 hours';
+      icon     = 'Sun';
+      duration = '24 hours';
     } else if (nameLower.includes('weekly') || nameLower.includes('week')) {
-      icon      = 'Calendar';
-      duration  = '7 days';
+      icon     = 'Calendar';
+      duration = '7 days';
     } else if (nameLower.includes('monthly') || nameLower.includes('month')) {
-      icon      = 'Crown';
-      duration  = '30 days';
-      badge     = 'BEST VALUE';
+      icon     = 'Crown';
+      duration = '30 days';
+      badge    = 'BEST VALUE';
     }
 
-    // Mark the cheapest package as "most popular"
     if (index === 0) {
       badge     = 'MOST POPULAR';
       highlight = true;
     }
 
     return {
-      // Use the real API id so it can be sent to STK push
-      id:         pkg.id,
-      api_id:     String(pkg.id),
+      id:          pkg.id,
+      api_id:      String(pkg.id),
       icon,
-      name:       pkg.name,
+      name:        pkg.name,
       description: pkg.description,
-      // Price from API is a string like "30.00" — display as KSh
-      price:      `KSh ${parseFloat(pkg.price).toFixed(0)}`,
-      priceNum:   parseFloat(pkg.price),
+      price:       `KSh ${parseFloat(pkg.price).toFixed(0)}`,
+      priceNum:    parseFloat(pkg.price),
       duration,
       highlight,
       badge,
@@ -55,15 +50,16 @@ export async function fetchPackages() {
 }
 
 // ── Send real STK Push to M-Pesa ───────────────────────────────────────────────
-// Returns { success: true } or throws with an error message
+// Returns the CheckoutRequestID string from Safaricom (via the NTN backend)
+// Throws on network / API error.
 export async function sendStkPush({ phone, packageId, amount }) {
   const res = await fetch(`${BASE_URL}/payment/stkpush`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      phone,        // e.g. "254712345678"
+      phone,
       package_id: String(packageId),
-      amount,       // numeric e.g. 30
+      amount,
     }),
   });
 
@@ -73,10 +69,71 @@ export async function sendStkPush({ phone, packageId, amount }) {
     throw new Error(data?.message || `STK push failed (${res.status})`);
   }
 
-  return data; // whatever the server returns (checkout_request_id etc.)
+  // The server returns the Safaricom CheckoutRequestID — needed for polling
+  // Common keys from M-Pesa callbacks: CheckoutRequestID, checkout_request_id
+  const checkoutRequestId =
+    data?.CheckoutRequestID     ??
+    data?.checkout_request_id   ??
+    data?.checkoutRequestId     ??
+    data?.request_id            ??
+    null;
+
+  if (!checkoutRequestId) {
+    throw new Error('STK push sent but no CheckoutRequestID returned from server.');
+  }
+
+  return checkoutRequestId; // e.g. "ws_CO_28082026210810859721661608"
 }
 
-// ── Voucher generator (kept for voucher display page) ─────────────────────────
+// ── Poll payment status ────────────────────────────────────────────────────────
+// Returns:
+//   { status: 'success' }  — payment confirmed
+//   { status: 'pending' }  — still waiting
+//   { status: 'failed', message: string } — payment rejected / cancelled
+export async function checkPaymentStatus(checkoutRequestId) {
+  const res = await fetch(
+    `${BASE_URL}/public/mpesa/payment-status/${checkoutRequestId}`
+  );
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    // 404 usually means the transaction ID is not yet in the system (still pending)
+    if (res.status === 404) return { status: 'pending' };
+    throw new Error(data?.message || `Status check failed (${res.status})`);
+  }
+
+  // Normalise different possible response shapes from the server
+  const raw = (
+    data?.status           ??
+    data?.Status           ??
+    data?.ResultCode       ??
+    data?.result_code      ??
+    ''
+  ).toString().toLowerCase();
+
+  if (raw === 'success' || raw === '0' || data?.success === true || data?.paid === true) {
+    return { status: 'success' };
+  }
+
+  if (
+    raw === 'failed'   ||
+    raw === 'failure'  ||
+    raw === 'cancelled'||
+    raw === 'canceled' ||
+    (data?.ResultCode !== undefined && data.ResultCode !== 0)
+  ) {
+    return {
+      status:  'failed',
+      message: data?.ResultDesc || data?.message || data?.error || 'Payment was declined or cancelled.',
+    };
+  }
+
+  // Anything else → still pending
+  return { status: 'pending' };
+}
+
+// ── Voucher generator ─────────────────────────────────────────────────────────
 export function generateVoucher() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
