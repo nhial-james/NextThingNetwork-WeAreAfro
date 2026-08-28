@@ -80,17 +80,8 @@ export default function LandingPage() {
     });
   }, []);
 
-  const formatVoucher = (val) => {
-    const clean = val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12);
-    const groups = [];
-    for (let i = 0; i < clean.length; i += 4) {
-      groups.push(clean.slice(i, i + 4));
-    }
-    return groups.join('-');
-  };
-
   const handleVoucherChange = (e) => {
-    setVoucher(formatVoucher(e.target.value));
+    setVoucher(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15));
   };
 
   const handleConnect = async (e) => {
@@ -197,18 +188,18 @@ export default function LandingPage() {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="AFRO-XXXX-XXXX"
-                    className="input-field text-center text-lg sm:text-xl tracking-widest font-mono uppercase font-bold"
+                    placeholder="e.g. HVLA1Z7"
+                    className="input-field text-center text-xl sm:text-2xl tracking-widest font-mono uppercase font-black"
                     value={voucher}
                     onChange={handleVoucherChange}
-                    maxLength={14}
+                    maxLength={15}
                     autoComplete="off"
                     autoCorrect="off"
                     spellCheck="false"
                   />
                 </div>
-                <div className="flex justify-between items-center text-[11px] text-white/35 mt-2 px-1">
-                  <span>Format: 12 alphanumeric characters</span>
+                <div className="flex justify-between items-center text-[11px] text-white/40 mt-2 px-1">
+                  <span>Format: 7-character code from SMS</span>
                   <span>Instant access</span>
                 </div>
               </div>
@@ -216,7 +207,7 @@ export default function LandingPage() {
               <button
                 type="submit"
                 className="btn-red w-full text-base mt-2 h-12 flex items-center justify-center gap-2"
-                disabled={loading || voucher.replace(/-/g, '').length < 8}
+                disabled={loading || voucher.trim().length < 4}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
