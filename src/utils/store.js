@@ -200,7 +200,7 @@ export async function sendStkPush({ phone, packageId, amount }) {
 export async function checkPaymentStatus(checkoutRequestId) {
   try {
     const res = await fetch(
-      `${BASE_URL}/public/mpesa/payment-status/${checkoutRequestId}`
+      `${BASE_URL}/mpesa/payment-status/${checkoutRequestId}`
     );
 
     if (!res.ok) {
@@ -210,15 +210,17 @@ export async function checkPaymentStatus(checkoutRequestId) {
 
     const data = await res.json().catch(() => ({}));
 
-    // Extract any voucher code directly from response
+    // Extract voucher code from nested or flat response
+    // e.g. {"status":"successful","voucher":{"voucher_code":"UFJPPX8","status":"active"}}
     let voucher =
-      data?.voucher ??
+      data?.voucher?.voucher_code ??
+      data?.voucher?.code ??
       data?.voucher_code ??
+      (typeof data?.voucher === 'string' ? data?.voucher : null) ??
       data?.code ??
       data?.voucherCode ??
+      data?.data?.voucher?.voucher_code ??
       data?.data?.voucher ??
-      data?.data?.code ??
-      data?.data?.voucher_code ??
       null;
 
     const message = (
@@ -230,7 +232,6 @@ export async function checkPaymentStatus(checkoutRequestId) {
     ).toString();
 
     // If voucher not in explicit field, extract from SMS message
-    // e.g. "Dear user, your voucher code is HVLA1Z7 for 3GB. Valid for 1 days."
     if (!voucher && message) {
       const match =
         message.match(/voucher(?:\s+code)?(?:\s+is)?[:\s]+([A-Za-z0-9]{5,15})/i) ||
@@ -253,24 +254,27 @@ export async function checkPaymentStatus(checkoutRequestId) {
 
     // Any positive signal indicates success
     const isSuccess =
-      Boolean(voucher) ||
-      rawStatus === 'success' ||
       rawStatus === 'successful' ||
+      rawStatus === 'success' ||
       rawStatus === 'completed' ||
       rawStatus === 'complete' ||
       rawStatus === 'paid' ||
       rawStatus === 'ok' ||
       rawStatus === '0' ||
+      Boolean(voucher) ||
       data?.success === true ||
       data?.paid === true ||
       resultCode === 0 ||
       resultCode === '0';
 
     if (isSuccess) {
-      const finalVoucher = voucher || generateVoucher();
+      const finalVoucher = (voucher || generateVoucher()).trim().toUpperCase();
       return {
         status: 'success',
         voucher: finalVoucher,
+        voucherDetails: typeof data?.voucher === 'object' ? data?.voucher : null,
+        site: data?.site,
+        amount: data?.amount,
         message: message || `Dear user, your voucher code is ${finalVoucher}.`,
         raw: data,
       };

@@ -40,7 +40,7 @@ export default function Step3ConfirmPayment() {
     if (countdownRef.current) clearInterval(countdownRef.current);
   };
 
-  const handleSuccess = (voucher) => {
+  const handleSuccess = (voucher, voucherDetails) => {
     stopAll();
     setVoucherCode(voucher);
     setStatus('success');
@@ -60,6 +60,7 @@ export default function Step3ConfirmPayment() {
           package: pkg,
           phone,
           voucher,
+          voucherDetails,
           autoConnect: true,
         },
       });
@@ -75,7 +76,7 @@ export default function Step3ConfirmPayment() {
         const result = await checkPaymentStatus(requestId);
 
         if (result.status === 'success') {
-          handleSuccess(result.voucher);
+          handleSuccess(result.voucher, result.voucherDetails);
         } else if (result.status === 'failed') {
           stopAll();
           if (mountedRef.current) {
