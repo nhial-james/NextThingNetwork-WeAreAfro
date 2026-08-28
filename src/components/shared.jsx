@@ -9,7 +9,7 @@ export const NTNLogo = ({ size = 'md' }) => {
   return (
     <div className="flex items-center">
       <img
-        src="/ntn-logo.svg"
+        src={`${import.meta.env.BASE_URL}ntn-logo.svg`}
         alt="Next Thing Networks"
         className={`${h} w-auto object-contain`}
         style={{ maxWidth: size === 'sm' ? 120 : 150 }}
@@ -24,7 +24,7 @@ export const AfroLogo = ({ size = 'md' }) => {
   return (
     <div className="flex items-center">
       <img
-        src="/afro-logo.svg"
+        src={`${import.meta.env.BASE_URL}afro-logo.svg`}
         alt="Most Wanted & Friends Live"
         className={`${h} w-auto object-contain`}
         style={{ maxWidth: size === 'sm' ? 140 : 180 }}

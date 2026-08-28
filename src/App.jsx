@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Step1SelectPlan from './pages/Step1_SelectPlan';
 import Step2EnterPhone from './pages/Step2_EnterPhone';
@@ -8,7 +8,7 @@ import Step5Connect from './pages/Step5_Connect';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         {/* Landing page */}
         <Route path="/" element={<LandingPage />} />
@@ -25,6 +25,6 @@ export default function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }

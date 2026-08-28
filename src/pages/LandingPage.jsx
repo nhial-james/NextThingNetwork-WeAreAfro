@@ -108,7 +108,7 @@ export default function LandingPage() {
       {/* ── HERO ────────────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-16 px-4 overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img src="/concert-bg.jpg" alt="We Are Afro Concert" className="w-full h-full object-cover object-center" />
+          <img src={`${import.meta.env.BASE_URL}concert-bg.jpg`} alt="We Are Afro Concert" className="w-full h-full object-cover object-center" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,5,0.5) 40%, rgba(0,0,0,0.85) 100%)' }} />
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)' }} />
         </div>
