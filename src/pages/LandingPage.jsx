@@ -150,9 +150,9 @@ export default function LandingPage() {
 
         {/* CTA buttons */}
         <div className="relative z-10 flex flex-col sm:flex-row gap-3 mb-8">
-          <button onClick={() => navigate('/buy')} className="btn-red px-8 py-3.5 text-base flex items-center gap-2">
+          {/* <button onClick={() => navigate('/buy')} className="btn-red px-8 py-3.5 text-base flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" /> Buy Data Now
-          </button>
+          </button> */}
           <button onClick={() => document.getElementById('login-card')?.scrollIntoView({ behavior: 'smooth' })}
                   className="btn-ghost px-8 py-3.5 text-base flex items-center gap-2">
             <Ticket className="w-5 h-5" /> Enter Voucher
