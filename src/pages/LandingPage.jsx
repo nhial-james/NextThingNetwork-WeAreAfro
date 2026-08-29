@@ -320,7 +320,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-white/[0.06] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-white/25 text-xs">© 2024 Next Thing Networks. All rights reserved.</p>
+            <p className="text-white/25 text-xs">© 2026 Next Thing Networks. All rights reserved.</p>
             <div className="flex items-center gap-4">
               <AfroLogo size="sm" />
               <div className="w-px h-6 bg-white/10" />
