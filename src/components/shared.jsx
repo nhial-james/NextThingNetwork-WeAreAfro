@@ -66,7 +66,7 @@ export const StepShell = ({ children, step, totalSteps = 5, title, subtitle }) =
         </button>
         <div className="flex items-center gap-1.5">
           <Wifi className="w-4 h-4 text-red-500" />
-          <span className="text-xs font-bold text-white/60 tracking-wider uppercase">WeAreAfro Wi-Fi</span>
+          <span className="text-xs font-bold text-white/60 tracking-wider uppercase">The Most Wanted Concert Wi-Fi</span>
         </div>
         <div className="text-xs text-white/30 font-mono">{step}/{totalSteps}</div>
       </div>
