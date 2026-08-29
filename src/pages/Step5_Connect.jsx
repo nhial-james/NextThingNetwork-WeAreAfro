@@ -52,7 +52,7 @@ export default function Step5Connect() {
 
   if (status === 'connected') {
     return (
-      <StepShell step={5} title="You're Connected! 🎉" subtitle="Enjoy ultra-fast internet at We Are Afro">
+      <StepShell step={5} title="You're Connected! 🎉" subtitle="Enjoy ultra-fast internet at The Most Wanted Concert">
         <div className="text-center py-4">
           <div
             className="relative inline-flex items-center justify-center w-28 h-28 rounded-full mb-6"
@@ -116,7 +116,7 @@ export default function Step5Connect() {
             style={{ background: 'rgba(227,30,36,0.08)', border: '1px solid rgba(227,30,36,0.2)' }}
           >
             <p className="text-sm text-white/70">
-              🎶 <span className="font-semibold text-white">Enjoy We Are Afro!</span><br />
+              🎶 <span className="font-semibold text-white">Enjoy The Most Wanted Concert!</span><br />
               <span className="text-xs text-white/40">Share moments, live stream, and stay connected.</span>
             </p>
           </div>

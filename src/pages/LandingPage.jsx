@@ -115,7 +115,7 @@ export default function LandingPage() {
       {/* ── HERO ────────────────────────────────────────────────────────────── */}
       <section className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-16 px-4 overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img src={`${import.meta.env.BASE_URL}concert-bg.jpg`} alt="We Are Afro Concert" className="w-full h-full object-cover object-center" />
+          <img src={`${import.meta.env.BASE_URL}concert-bg.jpg`} alt="The Most Wanted Concert" className="w-full h-full object-cover object-center" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,5,0.5) 40%, rgba(0,0,0,0.85) 100%)' }} />
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)' }} />
         </div>
@@ -125,7 +125,7 @@ export default function LandingPage() {
         <div className="relative z-10 mb-6 float-anim">
           <div className="flex items-center gap-2 glass-card rounded-full px-5 py-2.5">
             <Wifi className="w-4 h-4 text-red-500" />
-            <span className="text-sm font-semibold text-white tracking-wide">Official Internet Partner — We Are Afro Concert</span>
+            <span className="text-sm font-semibold text-white tracking-wide">Official Internet Partner — The Most Wanted Concert</span>
           </div>
         </div>
 
@@ -144,17 +144,17 @@ export default function LandingPage() {
             </span>
           </h1>
           <p className="text-base sm:text-lg text-white/70 font-light tracking-wider">
-            Official Internet Partner for <span className="text-red-400 font-semibold">We Are Afro</span>
+            Official Internet Partner for <span className="text-red-400 font-semibold">The Most Wanted Concert</span>
           </p>
         </div>
 
         {/* CTA buttons */}
         <div className="relative z-10 flex flex-col sm:flex-row gap-3 mb-8">
-          <button onClick={() => navigate('/buy')} className="btn-red px-8 py-3.5 text-base flex items-center gap-2">
+          {/* <button onClick={() => navigate('/buy')} className="btn-red px-8 py-3.5 text-base flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" /> Buy Data Now
-          </button>
+          </button> */}
           <button onClick={() => document.getElementById('login-card')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="btn-ghost px-8 py-3.5 text-base flex items-center gap-2">
+                  className="btn-red px-8 py-3.5 text-base flex items-center gap-2">
             <Ticket className="w-5 h-5" /> Enter Voucher
           </button>
         </div>
@@ -292,7 +292,7 @@ export default function LandingPage() {
             <div>
               <h4 className="text-xs font-bold uppercase tracking-widest text-white/50 mb-3">Support</h4>
               <ul className="space-y-2">
-                {[[Phone, '+254 700 000 000', 'tel:+254700000000'], [Mail, 'support@nextthingnetworks.co.ke', 'mailto:support@nextthingnetworks.co.ke']].map(([Icon, label, href]) => (
+                {[[Phone, '0207903950', 'tel:0207903950'], [Mail, 'info@nextthingnetworks.co.ke', 'mailto:info@nextthingnetworks.co.ke']].map(([Icon, label, href]) => (
                   <li key={label}>
                     <a href={href} className="flex items-center gap-2 text-xs text-white/40 hover:text-red-400 transition-colors">
                       <Icon className="w-3.5 h-3.5 flex-shrink-0" />{label}
